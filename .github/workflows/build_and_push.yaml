@@ -43,6 +43,9 @@ jobs:
   push-image:
     needs: [scan-image]
     runs-on: ubuntu-latest
+    env:
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
     steps:
       - name: download image tar
         uses: actions/download-artifact@v3
@@ -54,3 +57,5 @@ jobs:
             docker load -i dockerfile-opa.tar
             docker tag dockerfile-opa ttl.sh/dockerfile-opa
             docker push ttl.sh/dockerfile-opa
+            echo $REGISTRY_TOKEN | docker login -u $REGISTRY_USER --password-stdin
+            docker push dockerfile-opa
