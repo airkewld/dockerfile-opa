@@ -1,0 +1,56 @@
+name: build and deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # run every 10 hours
+    - cron: '0 */10 * * *'
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: build docker image
+        run: |
+            docker build . -t dockerfile-opa
+            docker save dockerfile-opa > dockerfile-opa.tar
+      - name: upload image for scanning
+        uses: actions/upload-artifact@v3
+        with:
+          name: dockerfile-opa.tar
+          path: dockerfile-opa.tar
+          retention-days: 1
+
+  scan-image:
+    needs: [build-image]
+    runs-on: ubuntu-latest
+    container:
+      image: aquasec/trivy
+    steps:
+      - name: download image tar
+        uses: actions/download-artifact@v3
+        with:
+          name: dockerfile-opa.tar
+          path: ./
+      - name: scan image for vulnerabilities
+        run: |
+            trivy image --input dockerfile-opa.tar --ignore-unfixed -s CRITICAL -s HIGH
+
+  push-image:
+    needs: [scan-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download image tar
+        uses: actions/download-artifact@v3
+        with:
+          name: dockerfile-opa.tar
+          path: ./
+      - name: tag and push image
+        run: |
+            docker load -i dockerfile-opa.tar
+            docker tag dockerfile-opa ttl.sh/dockerfile-opa
+            docker push ttl.sh/dockerfile-opa
