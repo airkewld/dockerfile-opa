@@ -58,4 +58,5 @@ jobs:
             docker tag dockerfile-opa ttl.sh/dockerfile-opa
             docker push ttl.sh/dockerfile-opa
             echo $REGISTRY_TOKEN | docker login -u $REGISTRY_USER --password-stdin
+            docker tag dockerfile-opa airkewld/dockerfile-opa
             docker push airkewld/dockerfile-opa
